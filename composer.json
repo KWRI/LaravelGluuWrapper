@@ -16,5 +16,7 @@
         "psr-4": {
             "KWRI\\LaravelGluuWrapper\\": "src/"
         }
-    }
+    },
+    "prefer-stable": true,
+    "minimum-stability": "dev"
 }
