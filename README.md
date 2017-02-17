@@ -37,4 +37,9 @@ If you want to use facade, add `'GluuWrapper' => KWRI\LaravelGluuWrapper\Facades
 1. Run `php artisan vendor:publish`
 2. Migrate the `access_tokens` table using `php artisan migrate`
 3. Modify `config/gluu-wrapper.php` with your environment configuration
-4. Set `autosave` value in the configuration into `true` if you want to save access_token data into your database automatically after every successful access token request
+
+## Using Middleware
+
+The middleware in this library depends on [`tymon/jwt-auth`](https://github.com/tymondesigns/jwt-auth). Make sure your application use this library too.
+
+To use the middleware, add `'gluu' => \KWRI\LaravelGluuWrapper\Middleware\GluuToken::class,` in your `app\Http\Kernel.php` file, and use `gluu` middleware.

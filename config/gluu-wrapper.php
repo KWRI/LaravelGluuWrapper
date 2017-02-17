@@ -17,10 +17,11 @@ return [
     'grant_type' => 'authorization_code',
     'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
 
-    // Set this value to true to automatically store your token.
-    // Make sure that you have migrate the table.
-    'autosave' => false,
+    // Set table name to store OpenID credentials
     'table_name' => 'access_tokens',
+
+    // Set table name of user authentication which implements AuthenticatableContract
+    'user_table_name' => 'users',
 
     // Endpoint for user to access
     'route_endpoint' => '/login',
