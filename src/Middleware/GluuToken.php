@@ -54,13 +54,11 @@ class GluuToken extends BaseMiddleware
             if ( ! $userInfo) {
                 return $this->respond('tymon.jwt.absent', 'invalid_token', 400);
             }
-
             $userInfo = array_map(function($claim){
                 return $claim->getValue();
             }, $userInfo);
 
-            // @TODO : tweak these field with the real one
-            $uid = $userInfo['sub']; // Tweak this with KW ID
+            $uid = $userInfo['persistentId']; // Tweak this with KW ID
             $company = $userInfo['given_name']; // Tweak this with KW Company
 
             $now = Carbon::now();
@@ -68,7 +66,7 @@ class GluuToken extends BaseMiddleware
                 [
                     'access_token' => $token,
                     'refresh_token' => $token,
-                    'expiry_in' => 300,
+                    'expiry_in' => 60 * 60 * 60 * 24 * 365,
                     'client_id' => $userInfo['inum'],
                     'uid' => $uid,
                     'email' => $userInfo['email'],
