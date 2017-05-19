@@ -51,9 +51,9 @@ class GluuToken extends BaseMiddleware
         $this->validateToken($token);
 
         // attach newest token on response
-        $response = $next($request);
-        $response->headers->set('Authorization', 'Bearer '.$token);
-        return $response;
+
+        $request->attributes->add(['access_token' => $this->token]);
+        return $next($request);
     }
 
     /**
