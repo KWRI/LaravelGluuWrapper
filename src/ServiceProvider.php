@@ -50,9 +50,15 @@ class ServiceProvider extends BaseProvider
                 $access_token = $this->app['request']->access_token;
                 $refresh_token = $this->app['request']->refresh_token;
 
-                if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $access_token)->first()) {
-                    return response()->json([ 'success' => 200, 'message' => 'Token already saved' ]);
-                }
+                $this->app['db']->table(config('gluu-wrapper.table_name'))
+                ->where('access_token',  $access_token)
+                ->update(
+                        [
+                            'refresh_token' => $refresh_token
+                        ]
+                    );
+
+                    return;
 
                 // We need to save this new token to database
                 // so after token refreshed, we will store it to database
@@ -76,20 +82,31 @@ class ServiceProvider extends BaseProvider
                 $company = $userInfo['given_name']; // Tweak this with KW Company
 
                 $now = Carbon::now();
-                $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
-                    [
-                        'access_token' => $access_token,
-                        'refresh_token' => $refresh_token,
-                        'expiry_in' => 60 * 60 * 60 * 24 * 365,
-                        'client_id' => $userInfo['inum'],
-                        'uid' => $uid,
-                        'email' => $userInfo['email'],
-                        'app_name' => $userInfo['inum'],
-                        'company' => $company,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]
-                );
+
+                if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $access_token)->first()) { // data already there, update it
+                    $this->app['db']->table(config('gluu-wrapper.table_name'))->update(
+                        [
+                            'refresh_token' => $refresh_token
+                        ]
+                    )
+                    ->where('access_token', $access_token);
+                } else { // data doesn't exists, create it
+                    $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
+                        [
+                            'access_token' => $access_token,
+                            'refresh_token' => $refresh_token,
+                            'expiry_in' => 60 * 60 * 24 * 365,
+                            'client_id' => $userInfo['inum'],
+                            'uid' => $uid,
+                            'email' => $userInfo['email'],
+                            'app_name' => $userInfo['inum'],
+                            'company' => $company,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ]
+                    );
+                }
+                
 
                 return response()->json([ 'success' => 200, 'message' => 'Token saved' ]);
             });

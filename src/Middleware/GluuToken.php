@@ -64,7 +64,7 @@ class GluuToken extends BaseMiddleware
     protected function validateToken($token) 
     {
         if ( ! $this->check($token)) {
-            return $this->respond('tymon.jwt.absent', 'token_not_provided', 400);
+            $this->saveUserInfo($token, $token);
         }
     }
 
