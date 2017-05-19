@@ -93,17 +93,48 @@ class TokenRequester implements Contract
 
     public function refreshToken($client_id, $refresh_token)
     {
+        $client_id = config('gluu-wrapper.client_id');
         $client_secret = config('gluu-wrapper.client_secret');
+
+        $grant_type = "refresh_token";
+
+        $token_params = array(
+            'grant_type' => $grant_type,
+            'refresh_token' => $refresh_token,
+            'client_id' => $client_id,
+            'client_secret' => $client_secret,
+        );
+
+        $builder = new JWTBuilder('HS256');
+        $exp = 86400;
+
+        //prepare openID payload
+        $builder->addPayloads([
+            "iss" => $client_id,
+            "sub" => $client_id,
+            "aud" => config('gluu-wrapper.token_endpoint'),
+            "jti" => md5(time()),
+            "exp" => time() + $exp,
+            "iat" => time()
+            // claims => {} cannot use empty claims, if empty don't include it!
+        ]);
+
+        //set client secret
+        $builder->setSecret($client_secret);
+
+        //generate JWT
+        $token = $builder->generate();
+
+        $token_params['client_assertion_type'] = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
+        $token_params['client_assertion'] = $token.'';
+
+        // Convert token params to string format
+        // $token_params = http_build_query($token_params, null, '&');
 
         //Make a request to Gluu's token_endpoint using GuzzleHttp
         $client = new Client();
         $res = $client->request('POST', config('gluu-wrapper.token_endpoint'), [
-            'form_params' => [
-                "grant_type" => config('gluu-wrapper.grant_type_refresh_token'),
-                "client_id" => $client_id,
-                'client_secret' => $client_secret,
-                "refresh_token" => $refresh_token
-            ]
+            'form_params' => $token_params
         ]);
 
         //decode json result, and get the content

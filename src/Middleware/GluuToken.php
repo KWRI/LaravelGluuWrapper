@@ -51,6 +51,7 @@ class GluuToken extends BaseMiddleware
     protected function validateToken($token)
     {
         $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($token);
+        dd($userInfo);
         if ( ! $this->check($token)) {
             try {
                 $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($token);
@@ -99,9 +100,10 @@ class GluuToken extends BaseMiddleware
     protected function refreshToken($entry)
     {
         $newToken = $this->app['gluu-wrapper']->getTokenRequester()->refreshToken($entry->client_id, $entry->refresh_token);
+        dd($newToken);
         return $newToken;
     }
-
+    
     /**
      * Check DB
      */
