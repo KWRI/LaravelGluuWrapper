@@ -46,7 +46,7 @@ class ServiceProvider extends BaseProvider
                 return response()->json([ 'error' => 404, 'message' => 'Error' ]);
             });
 
-            $this->app['router']->post(config('gluu-wrapper.route_save_token'), function() {
+            $this->app['router']->get(config('gluu-wrapper.route_save_token'), function() {
                 $access_token = $this->app['request']->access_token;
                 $refresh_token = $this->app['request']->refresh_token;
 

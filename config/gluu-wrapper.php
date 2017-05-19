@@ -33,9 +33,6 @@ return [
     // Route for getting user info
     'route_get_user_info' => '/user_info/{access_token}',
 
-    // Route for checking access token expiration
-    'route_check_token' => '/check_token',
-
     // Route for save access token 
     'route_save_token' => '/save_token',
 ];

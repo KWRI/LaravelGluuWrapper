@@ -96,7 +96,7 @@ class TokenRequester implements Contract
         $client_id = config('gluu-wrapper.client_id');
         $client_secret = config('gluu-wrapper.client_secret');
 
-        $grant_type = "refresh_token";
+        $grant_type = config('gluu-wrapper.grant_type_refresh_token');
 
         $token_params = array(
             'grant_type' => $grant_type,
