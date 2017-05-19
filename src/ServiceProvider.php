@@ -4,6 +4,7 @@ namespace KWRI\LaravelGluuWrapper;
 
 use Illuminate\Support\ServiceProvider as BaseProvider;
 use KWRI\LaravelGluuWrapper\Contracts\Manager as Contract;
+use Carbon\Carbon;
 
 class ServiceProvider extends BaseProvider
 {
@@ -43,6 +44,54 @@ class ServiceProvider extends BaseProvider
                 }
 
                 return response()->json([ 'error' => 404, 'message' => 'Error' ]);
+            });
+
+            $this->app['router']->post(config('gluu-wrapper.route_save_token'), function() {
+                $access_token = $this->app['request']->access_token;
+                $refresh_token = $this->app['request']->refresh_token;
+
+                if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $access_token)->first()) {
+                    return response()->json([ 'success' => 200, 'message' => 'Token already saved' ]);
+                }
+
+                // We need to save this new token to database
+                // so after token refreshed, we will store it to database
+                try {
+                    // get user info with new token
+                    $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($access_token);
+                } catch (\Exception $e) {
+                    $userInfo = null;
+                }
+
+                // if user not exists, then we assume that this new token is invalid
+                if ( ! $userInfo) {
+                    return $this->respond('tymon.jwt.absent', 'invalid_token', 400);
+                }
+
+                $userInfo = array_map(function($claim){
+                    return $claim->getValue();
+                }, $userInfo);
+                
+                $uid = $userInfo['persistentId']; // Tweak this with KW ID
+                $company = $userInfo['given_name']; // Tweak this with KW Company
+
+                $now = Carbon::now();
+                $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
+                    [
+                        'access_token' => $access_token,
+                        'refresh_token' => $refresh_token,
+                        'expiry_in' => 60 * 60 * 60 * 24 * 365,
+                        'client_id' => $userInfo['inum'],
+                        'uid' => $uid,
+                        'email' => $userInfo['email'],
+                        'app_name' => $userInfo['inum'],
+                        'company' => $company,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]
+                );
+
+                return response()->json([ 'success' => 200, 'message' => 'Token saved' ]);
             });
         }
     }

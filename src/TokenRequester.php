@@ -91,6 +91,26 @@ class TokenRequester implements Contract
         return $result;
     }
 
+    public function refreshToken($client_id, $refresh_token)
+    {
+        $client_secret = config('gluu-wrapper.client_secret');
+
+        //Make a request to Gluu's token_endpoint using GuzzleHttp
+        $client = new Client();
+        $res = $client->request('POST', config('gluu-wrapper.token_endpoint'), [
+            'form_params' => [
+                "grant_type" => config('gluu-wrapper.grant_type_refresh_token'),
+                "client_id" => $client_id,
+                'client_secret' => $client_secret,
+                "refresh_token" => $refresh_token
+            ]
+        ]);
+
+        //decode json result, and get the content
+        $result = json_decode($res->getBody()->getContents(), true);
+        return $result;
+    }
+
     public function encryptClientData($client_id, $client_secret)
     {
         $data = $client_id . '~|~' . $client_secret;

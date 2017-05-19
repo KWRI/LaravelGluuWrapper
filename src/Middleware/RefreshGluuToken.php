@@ -13,7 +13,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Foundation\Application;
 
-class GluuToken extends BaseMiddleware
+class RefreshGluuToken extends BaseMiddleware
 {
     /**
      * Create a new BaseMiddleware instance.
@@ -30,7 +30,7 @@ class GluuToken extends BaseMiddleware
 
         $this->app = $app;
     }
-
+    
     /**
      * Handle an incoming request.
      *
@@ -40,39 +40,50 @@ class GluuToken extends BaseMiddleware
      */
     public function handle($request, \Closure $next)
     {
+        $response = $next($request);
+        // check if token is provided or not
         if (! $token = $this->auth->setRequest($request)->getToken()) {
             return $this->respond('tymon.jwt.absent', 'token_not_provided', 400);
         }
 
-        $this->validateToken($token);
-        return $next($request);
-    }
-
-    protected function validateToken($token)
-    {
-        $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($token);
+        // check if token is expire or not,
+        // if it is expired then, we need to refresh that token
+        // if not, just pass to the next step
         if ( ! $this->check($token)) {
+            try { 
+                // generate new token
+                $newToken = $this->auth->setRequest($request)->parseTokenAsObject()->refresh();
+            } catch (Exception $e) {
+                // token is invalid
+                return $this->respond('tymon.jwt.invalid', 'token_invalid', 400);
+            }
+
+            // We need to save this new token to database
+            // so after token refreshed, we will store it to database
             try {
-                $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($token);
+                // get user info with new token
+                $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($newToken);
             } catch (\Exception $e) {
                 $userInfo = null;
             }
 
+            // if user not exists, then we assume that this new token is invalid
             if ( ! $userInfo) {
                 return $this->respond('tymon.jwt.absent', 'invalid_token', 400);
             }
+
             $userInfo = array_map(function($claim){
                 return $claim->getValue();
             }, $userInfo);
-
+            
             $uid = $userInfo['persistentId']; // Tweak this with KW ID
             $company = $userInfo['given_name']; // Tweak this with KW Company
 
             $now = Carbon::now();
             $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
                 [
-                    'access_token' => $token,
-                    'refresh_token' => $token,
+                    'access_token' => $newToken,
+                    'refresh_token' => $newToken,
                     'expiry_in' => 60 * 60 * 60 * 24 * 365,
                     'client_id' => $userInfo['inum'],
                     'uid' => $uid,
@@ -84,22 +95,10 @@ class GluuToken extends BaseMiddleware
                 ]
             );
 
-            $this->check($token);
+            // send the refreshed token back to the client
+            $response->headers->set('Authorization', 'Bearer '.$newToken);
         }
-    }
-
-    protected function isTokenExpired($entry)
-    {
-        $expired = (new Carbon($entry->created_at))->addSeconds($entry->expiry_in);
-        
-        $now = Carbon::now();
-        return $expired->lt($now);
-    }
-
-    protected function refreshToken($entry)
-    {
-        $newToken = $this->app['gluu-wrapper']->getTokenRequester()->refreshToken($entry->client_id, $entry->refresh_token);
-        return $newToken;
+        return $response;
     }
 
     /**
@@ -108,22 +107,14 @@ class GluuToken extends BaseMiddleware
     protected function check($token)
     {
         if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $token)->first()) {
-
-            // token exists
-            // check if it is expired
-            if ($this->isTokenExpired($entry)) {
-                $this->validateToken($this->refreshToken($entry));
+            $expired = new Carbon($entry->created_at);
+            $now = Carbon::now();
+            if ($expired->lt($now)) {
+                return entry;
             }
-
-            if ($relatedUser = $this->app['db']->table(config('gluu-wrapper.user_table_name'))->where('email', $entry->email)->first()) {
-                // Authenticate
-                $this->app['auth']->onceUsingId($relatedUser->id);
-
-                // Done :)
-                return $relatedUser;
-            }
+            return true;
         }
 
-        return null;
+        return false;
     }
 }
