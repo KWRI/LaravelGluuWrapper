@@ -15,6 +15,7 @@ return [
     'scope' => 'openid',
 
     'grant_type' => 'authorization_code',
+    'grant_type_refresh_token' => 'refresh_token',
     'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
 
     // Set table name to store OpenID credentials
@@ -31,4 +32,7 @@ return [
 
     // Route for getting user info
     'route_get_user_info' => '/user_info/{access_token}',
+
+    // Route for save access token 
+    'route_save_token' => '/save_token',
 ];
