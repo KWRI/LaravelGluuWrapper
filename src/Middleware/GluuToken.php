@@ -12,6 +12,7 @@ use Tymon\JWTAuth\Middleware\BaseMiddleware;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Foundation\Application;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class GluuToken extends BaseMiddleware
 {
@@ -39,11 +40,12 @@ class GluuToken extends BaseMiddleware
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
      * @return mixed
+     * @throws Tymon\JWTAuth\Exceptions\JWTException
      */
     public function handle($request, \Closure $next)
     {
         if (! $token = $this->auth->setRequest($request)->getToken()) {
-            return $this->respond('tymon.jwt.absent', 'token_not_provided', 400);
+            throw new JWTException('Invalid token', 400);
         }
 
         $this->setToken($token);
@@ -58,10 +60,10 @@ class GluuToken extends BaseMiddleware
 
     /**
      * Validate token
-     * 
+     *
      * @param string $token
      */
-    protected function validateToken($token) 
+    protected function validateToken($token)
     {
         if ( ! $this->check($token)) {
             $this->saveUserInfo($token, $token);
@@ -70,9 +72,10 @@ class GluuToken extends BaseMiddleware
 
     /**
      * Save user info from token
-     * 
+     *
      * @param string $access_token
      * @param string $refresh_token
+     * @throws Tymon\JWTAuth\Exceptions\JWTException
      */
     protected function saveUserInfo($access_token, $refresh_token)
     {
@@ -83,7 +86,7 @@ class GluuToken extends BaseMiddleware
         }
 
         if ( ! $userInfo) {
-            return $this->respond('tymon.jwt.absent', 'invalid_token', 400);
+            throw new JWTException('Invalid token', 400);
         }
         $userInfo = array_map(function($claim){
             return $claim->getValue();
@@ -120,7 +123,7 @@ class GluuToken extends BaseMiddleware
     protected function isTokenExpired($entry)
     {
         $expired = (new Carbon($entry->created_at))->addSeconds($entry->expiry_in);
-        
+
         $now = Carbon::now();
         return $expired->lt($now);
     }
