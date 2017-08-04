@@ -13,24 +13,20 @@ class UserInfoRequester implements Contract
         $parser = new Parser();
 
         $client = new Client();
-        try {
-            $res = $client->request('GET', config("gluu-wrapper.{$type}_endpoint"), [
-                'verify' => false,
-                'headers' => [
-                    'Authorization' => "Bearer {$access_token}"
-                ]
-            ]);
+        $res = $client->request('GET', config("gluu-wrapper.{$type}_endpoint"), [
+            'verify' => false,
+            'headers' => [
+                'Authorization' => "Bearer {$access_token}"
+            ]
+        ]);
 
-            $result = $res->getBody()->getContents();
+        $result = $res->getBody()->getContents();
 
-            $token = $parser->parse($result);
+        $token = $parser->parse($result);
 
-            $claims = $token->getClaims();
+        $claims = $token->getClaims();
 
-            return empty($claims) ? null : $claims;
-        } catch (\Exception $e) {
-            dd($e);
-        }
+        return empty($claims) ? null : $claims;
     }
 
     public function getClientInfo($access_token)
