@@ -8,7 +8,7 @@ namespace KWRI\LaravelGluuWrapper\Middleware;
 
 use KWRI\LaravelGluuWrapper\Services\GluuAuth;
 use Carbon\Carbon;
-use Tymon\JWTAuth\Middleware\BaseMiddleware;
+use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Foundation\Application;
@@ -25,13 +25,11 @@ class GluuToken extends BaseMiddleware
      * @param \Illuminate\Contracts\Events\Dispatcher  $events
      * @param \Tymon\JWTAuth\JWTAuth  $auth
      */
-    public function __construct(ResponseFactory $response, Dispatcher $events, GluuAuth $auth, Application $app)
+    public function __construct(Dispatcher $events, GluuAuth $auth)
     {
-        $this->response = $response;
         $this->events = $events;
         $this->auth = $auth;
 
-        $this->app = $app;
     }
 
     /**
@@ -44,9 +42,7 @@ class GluuToken extends BaseMiddleware
      */
     public function handle($request, \Closure $next)
     {
-        if (! $token = $this->auth->setRequest($request)->getToken()) {
-            throw new JWTException('Invalid token', 400);
-        }
+        $token = $this->auth->setRequest($request)->parseAuthHeader();
 
         $this->setToken($token);
 
@@ -79,8 +75,9 @@ class GluuToken extends BaseMiddleware
      */
     protected function saveUserInfo($access_token, $refresh_token)
     {
+        $app = app();
         try {
-            $userInfo = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($access_token);
+            $userInfo = $app['gluu-wrapper']->getUserRequester()->getUserInfo($access_token);
         } catch (\Exception $e) {
             $userInfo = null;
         }
@@ -96,7 +93,7 @@ class GluuToken extends BaseMiddleware
         $company = $userInfo['given_name']; // Tweak this with KW Company
 
         $now = Carbon::now();
-        $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
+        $app['db']->table(config('gluu-wrapper.table_name'))->insert(
             [
                 'access_token' => $access_token,
                 'refresh_token' => $refresh_token,
@@ -135,7 +132,7 @@ class GluuToken extends BaseMiddleware
      */
     protected function refreshToken($entry)
     {
-        $newToken = $this->app['gluu-wrapper']->getTokenRequester()->refreshToken($entry->client_id, $entry->refresh_token);
+        $newToken = app()['gluu-wrapper']->getTokenRequester()->refreshToken($entry->client_id, $entry->refresh_token);
         return $newToken;
     }
 
@@ -144,7 +141,8 @@ class GluuToken extends BaseMiddleware
      */
     protected function check($token)
     {
-        if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $token)->first()) {
+        $app = app();
+        if ( $entry = $app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $token)->first()) {
 
             // token exists
             // check if it is expired
@@ -153,9 +151,9 @@ class GluuToken extends BaseMiddleware
                 $this->saveUserInfo($newToken['access_token'], $newToken['refresh_token']);
             }
 
-            if ($relatedUser = $this->app['db']->table(config('gluu-wrapper.user_table_name'))->where('email', $entry->email)->first()) {
+            if ($relatedUser = $app['db']->table(config('gluu-wrapper.user_table_name'))->where('email', $entry->email)->first()) {
                 // Authenticate
-                $this->app['auth']->onceUsingId($relatedUser->id);
+                // $app['auth']->login($relatedUser);
             }
 
             return $entry;
