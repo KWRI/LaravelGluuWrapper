@@ -2,6 +2,7 @@
 
 use Tymon\JWTAuth\JWTAuth;
 use Tymon\JWTAuth\Token;
+use Illuminate\Http\Request;
 
 class GluuAuth extends JWTAuth
 {
@@ -45,5 +46,18 @@ class GluuAuth extends JWTAuth
         }
 
         return $this->setTokenObject($token);
+    }
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
+        return $this;
+    }
+    public function parseAuthHeader($header = 'authorization', $method = 'bearer')
+    {
+        $header = $this->request->headers->get($header);
+        if (! starts_with(strtolower($header), $method)) {
+            return false;
+        }
+        return trim(str_ireplace($method, '', $header));
     }
 }

@@ -11,7 +11,7 @@
     "require": {
         "lcobucci/jwt": "~3.2",
         "guzzlehttp/guzzle": "~6.0",
-        "tymon/jwt-auth": "0.5.*"
+        "tymon/jwt-auth": "1.0.*"
     },
     "autoload": {
         "psr-4": {

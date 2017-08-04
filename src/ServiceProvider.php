@@ -15,26 +15,19 @@ class ServiceProvider extends BaseProvider
      */
     public function boot()
     {
-        $this->publishes([
-            __DIR__.'/../config/gluu-wrapper.php' => config_path('gluu-wrapper.php'),
-        ], 'config');
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/' => database_path('migrations')
-        ], 'migrations');
-
-        if ( ! $this->app->routesAreCached()) {
-            $this->app['router']->get(config('gluu-wrapper.route_endpoint'), function () {
+        // if ( ! $this->app->routesAreCached()) {
+            $this->app->get(\config('gluu-wrapper.route_endpoint'), function () {
                 return redirect($this->app['gluu-wrapper']->getTokenRequester()->generateURI());
             });
 
-            $this->app['router']->get(config('gluu-wrapper.route_get_user_info'), function ($access_token) {
+            $this->app->get(\config('gluu-wrapper.route_get_user_info'), function ($access_token) {
                 $userInfoJWE = $this->app['gluu-wrapper']->getUserRequester()->getUserInfo($access_token);
 
                 return response()->json($userInfoJWE);
             });
 
-            $this->app['router']->get(config('gluu-wrapper.route_access_token_granted'), function () {
+            $this->app->get(\config('gluu-wrapper.route_access_token_granted'), function () {
                 $request = $this->app['gluu-wrapper']->getTokenRequester()->getRequest($this->app['request']);
 
                 if (isset($request['code'])) {
@@ -46,11 +39,11 @@ class ServiceProvider extends BaseProvider
                 return response()->json([ 'error' => 404, 'message' => 'Error' ]);
             });
 
-            $this->app['router']->get(config('gluu-wrapper.route_save_token'), function() {
+            $this->app->get(\config('gluu-wrapper.route_save_token'), function() {
                 $access_token = $this->app['request']->access_token;
                 $refresh_token = $this->app['request']->refresh_token;
 
-                $this->app['db']->table(config('gluu-wrapper.table_name'))
+                $this->app['db']->table(\config('gluu-wrapper.table_name'))
                 ->where('access_token',  $access_token)
                 ->update(
                         [
@@ -77,21 +70,21 @@ class ServiceProvider extends BaseProvider
                 $userInfo = array_map(function($claim){
                     return $claim->getValue();
                 }, $userInfo);
-                
+
                 $uid = $userInfo['persistentId']; // Tweak this with KW ID
                 $company = $userInfo['given_name']; // Tweak this with KW Company
 
                 $now = Carbon::now();
 
-                if ( $entry = $this->app['db']->table(config('gluu-wrapper.table_name'))->where('access_token', $access_token)->first()) { // data already there, update it
-                    $this->app['db']->table(config('gluu-wrapper.table_name'))->update(
+                if ( $entry = $this->app['db']->table(\config('gluu-wrapper.table_name'))->where('access_token', $access_token)->first()) { // data already there, update it
+                    $this->app['db']->table(\config('gluu-wrapper.table_name'))->update(
                         [
                             'refresh_token' => $refresh_token
                         ]
                     )
                     ->where('access_token', $access_token);
                 } else { // data doesn't exists, create it
-                    $this->app['db']->table(config('gluu-wrapper.table_name'))->insert(
+                    $this->app['db']->table(\config('gluu-wrapper.table_name'))->insert(
                         [
                             'access_token' => $access_token,
                             'refresh_token' => $refresh_token,
@@ -106,11 +99,11 @@ class ServiceProvider extends BaseProvider
                         ]
                     );
                 }
-                
+
 
                 return response()->json([ 'success' => 200, 'message' => 'Token saved' ]);
             });
-        }
+        // }
     }
 
     /**
