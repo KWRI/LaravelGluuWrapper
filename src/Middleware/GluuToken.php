@@ -42,7 +42,7 @@ class GluuToken extends BaseMiddleware
      */
     public function handle($request, \Closure $next)
     {
-        $token = $this->auth->setRequest($request)->parseAuthHeader();
+        $token = $this->auth->setRequest($request)->parseTokenAsObject();
 
         $this->setToken($token);
 

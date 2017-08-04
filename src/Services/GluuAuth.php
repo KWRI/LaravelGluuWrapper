@@ -45,7 +45,7 @@ class GluuAuth extends JWTAuth
             }
         }
 
-        return $this->setTokenObject($token);
+        return $token;
     }
     public function setRequest(Request $request)
     {
