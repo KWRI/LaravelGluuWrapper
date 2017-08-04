@@ -43,10 +43,6 @@ class GluuToken extends BaseMiddleware
     public function handle($request, \Closure $next)
     {
         $token = $this->auth->setRequest($request)->parseAuthHeader();
-        // dd($this->auth->setRequest($request)->getToken());
-        // if (! $token = $this->auth->setRequest($request)->getToken()) {
-        //     throw new JWTException('Invalid token', 400);
-        // }
 
         $this->setToken($token);
 
