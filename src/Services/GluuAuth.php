@@ -3,6 +3,7 @@
 use Tymon\JWTAuth\JWTAuth;
 use Tymon\JWTAuth\Token;
 use Illuminate\Http\Request;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class GluuAuth extends JWTAuth
 {
