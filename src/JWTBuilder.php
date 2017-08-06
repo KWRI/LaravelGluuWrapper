@@ -77,7 +77,7 @@ class JWTBuilder
   public function generate()
   {
     foreach ($this->payloads as $key => $val) {
-      $this->builder->with($key, $val);
+      $this->builder->set($key, $val);
     }
 
     $this->sign();
