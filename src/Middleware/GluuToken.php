@@ -113,6 +113,52 @@ class GluuToken extends BaseMiddleware
     }
 
     /**
+     * Save user info from token
+     *
+     * @param string $access_token
+     * @param string $refresh_token
+     * @throws Tymon\JWTAuth\Exceptions\JWTException
+     */
+    protected function updateUserInfo($id, $access_token, $refresh_token)
+    {
+        $app = app();
+        try {
+            $userInfo = $app['gluu-wrapper']->getUserRequester()->getUserInfo($access_token);
+        } catch (\Exception $e) {
+            $userInfo = null;
+        }
+
+        if ( ! $userInfo) {
+            throw new JWTException('Invalid token', 400);
+        }
+        $userInfo = array_map(function($claim){
+            return $claim->getValue();
+        }, $userInfo);
+
+        $uid = $userInfo['persistentId']; // Tweak this with KW ID
+        $company = $userInfo['given_name']; // Tweak this with KW Company
+
+        $now = Carbon::now();
+        $app['db']->table(config('gluu-wrapper.table_name'))->where('id', $id)->update(
+            [
+                'access_token' => $access_token,
+                'refresh_token' => $refresh_token,
+                'expiry_in' => 1 * 60 * 60 * 24 * 365,
+                'client_id' => $userInfo['inum'],
+                'uid' => $uid,
+                'email' => $userInfo['email'],
+                'app_name' => $userInfo['inum'],
+                'company' => $company,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+
+        $this->setToken($access_token);
+        $this->check($access_token);
+    }
+
+    /**
      * Check if token is expired or not
      *
      * @param mixed $entry
@@ -148,7 +194,7 @@ class GluuToken extends BaseMiddleware
             // check if it is expired
             if ($this->isTokenExpired($entry)) {
                 $newToken = $this->refreshToken($entry);
-                $this->saveUserInfo($newToken['access_token'], $newToken['refresh_token']);
+                $this->updateUserInfo($entry->id, $newToken['access_token'], $newToken['refresh_token']);
             }
 
             if ($relatedUser = $app['db']->table(config('gluu-wrapper.user_table_name'))->where('email', $entry->email)->first()) {
