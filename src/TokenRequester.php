@@ -91,6 +91,24 @@ class TokenRequester implements Contract
         return $result;
     }
 
+    public function forceRefreshToken($accessToken, $clientId, $clientSecret)
+    {
+        $token_params = array(
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $accessToken,
+        );
+
+        $client = new Client();
+        $res = $client->request('POST', config('gluu-wrapper.token_endpoint'), [
+            'form_params' => $token_params,
+            'auth' => [$clientId, $clientSecret, 'basic']
+        ]);
+
+        //decode json result, and get the content
+        $result = json_decode($res->getBody()->getContents(), true);
+        return $result;
+    }
+
     public function refreshToken($client_id, $refresh_token)
     {
         $client_id = config('gluu-wrapper.client_id');

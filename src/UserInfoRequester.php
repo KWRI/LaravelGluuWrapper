@@ -21,10 +21,12 @@ class UserInfoRequester implements Contract
         ]);
 
         $result = $res->getBody()->getContents();
-
-        $token = $parser->parse($result);
-
-        $claims = $token->getClaims();
+        if ($type == 'userinfo') {
+            $token = $parser->parse($result);
+            $claims = $token->getClaims();
+        } else {
+            $claims = json_decode($result, true);
+        }
 
         return empty($claims) ? null : $claims;
     }

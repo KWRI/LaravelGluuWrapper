@@ -10,8 +10,8 @@ return [
     'clientinfo_endpoint' => "{$idpEndpoint}/oxauth/seam/resource/restv1/oxauth/clientinfo",
 
     // This client_id and client_secret is used as self-consumed keys.
-    'client_id' => env('IDP_CLIENT_ID', '@!8EF4.0267.10A3.7789!0001!58DE.5ADC!0008!66CE.92B9'),
-    'client_secret' => env('IDP_CLIENT_SECRET', 'refactory'),
+    'client_id' => env('IDP_CLIENT_ID', '@!8EF4.0267.10A3.7789!0001!58DE.5ADC!0008!C2C4.9504'),
+    'client_secret' => env('IDP_CLIENT_SECRET', 'r3f4ct0ry'),
 
     'response_type' => 'code',
     'scope' => 'openid email profile',
