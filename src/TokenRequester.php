@@ -93,15 +93,34 @@ class TokenRequester implements Contract
 
     public function forceRefreshToken($accessToken, $clientId, $clientSecret)
     {
-        $token_params = array(
+        $builder = new JWTBuilder('HS256');
+        $exp = 86400;
+
+        //prepare openID payload
+        $builder->addPayloads([
+            "iss" => $clientId,
+            "sub" => $clientId,
+            "aud" => config('gluu-wrapper.token_endpoint'),
+            "jti" => md5(time()),
+            "exp" => time() + $exp,
+            "iat" => time()
+            // claims => {} cannot use empty claims, if empty don't include it!
+        ]);
+        //set client secret
+        $builder->setSecret($clientSecret);
+
+        $jwtToken = $builder->generate();
+
+        $payload = array(
             'grant_type' => 'refresh_token',
             'refresh_token' => $accessToken,
+            'client_assertion_type' => 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion' => $jwtToken->__toString()
         );
-
+        
         $client = new Client();
         $res = $client->request('POST', config('gluu-wrapper.token_endpoint'), [
-            'form_params' => $token_params,
-            'auth' => [$clientId, $clientSecret, 'basic']
+            'form_params' => $payload
         ]);
 
         //decode json result, and get the content
