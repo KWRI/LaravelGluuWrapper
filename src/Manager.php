@@ -13,4 +13,8 @@ class Manager
     {
         return new UserInfoRequester();
     }
+
+    public function getSCIMService() {
+        return new SCIMService();
+    }
 }
