@@ -28,17 +28,18 @@ class SCIMService {
     }
 
 
-    public function validateKwuid($kwuid) {
+    public function searchByKwuid($kwuid) {
 
         $searchParams = [
             "filter" => 'PersistentId eq "'.$kwuid.'"',
+            "count" => 1,
         ];
 
         $users = $this->browseUsers($searchParams);
         if (!isset($users["totalResults"])) {
             return false;
         }
-        return $users["totalResults"] > 0;
+        return $users;
     }
 
 
